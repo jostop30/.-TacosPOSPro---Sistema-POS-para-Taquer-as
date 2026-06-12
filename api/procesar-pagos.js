@@ -1,9 +1,10 @@
-export default async function handler(req, res) {
-    // Configurar cabeceras para permitir peticiones
+module.exports = async (req, res) => {
+    // Configurar cabeceras CORS de forma clásica
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+    // Responder de inmediato a la verificación de seguridad del navegador
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
     try {
         const { device_id, total, mp_token } = req.body;
 
-        // El servidor hace la petición segura a Mercado Pago (Aquí no aplica el bloqueo CORS)
+        // Petición directa a Mercado Pago usando el fetch nativo de Node.js
         const response = await fetch(`https://api.mercadopago.com/point/integration-api/devices/${device_id}/payment-intents`, {
             method: 'POST',
             headers: {
@@ -34,4 +35,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
-}
+};
