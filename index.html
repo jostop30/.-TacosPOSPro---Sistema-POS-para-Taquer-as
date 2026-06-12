@@ -648,49 +648,32 @@ function confirmarPagoEfectivo() {
 }
 
 // ---------------- INTEGRACIÓN MERCADO PAGO ----------------
-async function procesarPagoPoint() {
-    const token = localStorage.getItem('mpToken');
-    const deviceId = localStorage.getItem('mpDevice');
-    
-    if (!token || !deviceId) {
-        const confirmarManual = confirm("⚠️ No has configurado tu Terminal Mercado Pago.\n\n¿Deseas registrar este cobro con tarjeta manualmente en el sistema?");
-        if(confirmarManual) registrarPagoDB('point');
-        return;
-    }
-
-    const btn = document.getElementById('btnPoint');
-    btn.textContent = '⏳ Enviando monto a Terminal...';
-    btn.disabled = true;
-
+async function procesarPagoPoint(deviceId, total, mpToken) {
     try {
-        const response = await fetch(`https://api.mercadopago.com/point/integration-api/devices/${deviceId}/payment-intents`, {
+        // En lugar de llamar a Mercado Pago directo, llamamos a nuestra API local segura
+        const response = await fetch('/api/procesar-pago', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                amount: pendingTotal,
-                description: `Cobro TacosPOSPro TKT`,
-                payment: { installments: 1, type: "credit_card" }
+                device_id: deviceId,
+                total: total,
+                mp_token: mpToken
             })
         });
 
-        if (!response.ok) throw new Error('CORS o Terminal no conectada');
+        const data = await response.json();
 
-        btn.textContent = '💳 Desliza la tarjeta en la terminal...';
-        alert("✅ El monto fue enviado a tu terminal.\n\nCompleta el cobro en tu terminal física y luego da clic en Aceptar.");
-        await registrarPagoDB('point');
-
-    } catch (e) {
-        console.error(e);
-        const confirmManual = confirm("🛑 El navegador bloqueó la conexión directa (CORS) o hay error de red.\n\nSi cobraste el monto tecleándolo manualmente en tu terminal, haz clic en ACEPTAR para registrarlo en el sistema.");
-        if(confirmManual) {
-            await registrarPagoDB('point');
+        if (response.ok) {
+            alert('¡Orden enviada exitosamente a la terminal Smart Point!');
+            // Aquí puedes continuar con la lógica de tu sistema (ej. cerrar orden, limpiar carrito)
+        } else {
+            alert('Mercado Pago devolvió un error: ' + (data.message || 'Error desconocido'));
         }
-    } finally {
-        btn.textContent = '💳 Cobrar con MP POINT Smart';
-        btn.disabled = false;
+    } catch (error) {
+        console.error(error);
+        alert('Error de conexión con el servidor de pagos: ' + error.message);
     }
 }
 
