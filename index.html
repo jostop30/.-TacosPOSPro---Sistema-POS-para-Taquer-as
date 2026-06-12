@@ -650,7 +650,6 @@ function confirmarPagoEfectivo() {
 // ---------------- INTEGRACIÓN MERCADO PAGO ----------------
 async function procesarPagoPoint(deviceId, total, mpToken) {
     try {
-        // En lugar de llamar a Mercado Pago directo, llamamos a nuestra API local segura
         const response = await fetch('/api/procesar-pago', {
             method: 'POST',
             headers: {
@@ -663,20 +662,29 @@ async function procesarPagoPoint(deviceId, total, mpToken) {
             })
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            alert('¡Orden enviada exitosamente a la terminal Smart Point!');
-            // Aquí puedes continuar con la lógica de tu sistema (ej. cerrar orden, limpiar carrito)
-        } else {
-            alert('Mercado Pago devolvió un error: ' + (data.message || 'Error desconocido'));
+        // 1. Verificamos si el servidor respondió con un error (como el 404)
+        if (!response.ok) {
+            const contentType = response.headers.get("content-type");
+            // Si el error es un JSON válido de Mercado Pago, lo mostramos
+            if (contentType && contentType.includes("application/json")) {
+                const errorData = await response.json();
+                alert('Mercado Pago devolvió un error: ' + (errorData.message || 'Error desconocido'));
+            } else {
+                // Si el error es un HTML (como el 404 de Vercel), mostramos un mensaje amigable
+                alert(`Error del servidor (${response.status}): No se encontró la ruta de pagos.\n\nPor favor, verifica que la carpeta 'api' esté bien estructurada y subida a Vercel.`);
+            }
+            return; // Detenemos la ejecución de manera segura
         }
+
+        // 2. Si la respuesta es exitosa (código 200), procesamos el JSON normalmente
+        const data = await response.json();
+        alert('¡Orden enviada exitosamente a la terminal Smart Point!');
+        
     } catch (error) {
         console.error(error);
         alert('Error de conexión con el servidor de pagos: ' + error.message);
     }
 }
-
 async function prepararTransferenciaMP() {
     document.getElementById('pagoBotones').style.display = 'none';
     document.getElementById('pagoQR').style.display = 'flex';
