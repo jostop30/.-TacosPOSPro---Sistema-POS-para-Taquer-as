@@ -1,7 +1,9 @@
 {
-  "functions": {
-    "api/*.js": {
-      "runtime": "vercel-node@latest"
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/procesar-pago",
+      "destination": "/api/procesar-pago.js"
     }
-  }
+  ]
 }
